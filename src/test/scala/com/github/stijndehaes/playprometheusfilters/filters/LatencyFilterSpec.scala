@@ -11,17 +11,23 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import play.api.mvc._
 import play.api.test.Helpers._
-import play.api.test.{DefaultAwaitTimeout, FakeRequest, FutureAwaits}
+import play.api.test.{ DefaultAwaitTimeout, FakeRequest, FutureAwaits }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class LatencyFilterSpec extends PlaySpec with MockitoSugar with Results with DefaultAwaitTimeout with FutureAwaits with GuiceOneAppPerSuite {
+class LatencyFilterSpec
+    extends PlaySpec
+    with MockitoSugar
+    with Results
+    with DefaultAwaitTimeout
+    with FutureAwaits
+    with GuiceOneAppPerSuite {
 
-  val configuration = mock[Configuration]
+  val configuration: Configuration = mock[Configuration]
 
   "Filter constructor" should {
     "Add a histogram to the prometheus registry" in {
-      implicit val mat = app.materializer
+      implicit val mat      = app.materializer
       val collectorRegistry = mock[CollectorRegistry]
       new LatencyFilter(collectorRegistry, configuration)
       verify(collectorRegistry).register(any())
@@ -31,9 +37,9 @@ class LatencyFilterSpec extends PlaySpec with MockitoSugar with Results with Def
   "Apply method" should {
     "Measure the latency" in {
       implicit val mat = app.materializer
-      val filter = new LatencyFilter(mock[CollectorRegistry], configuration)
-      val rh = FakeRequest()
-      val action = new MockController(stubControllerComponents()).ok
+      val filter       = new LatencyFilter(mock[CollectorRegistry], configuration)
+      val rh           = FakeRequest()
+      val action       = new MockController(stubControllerComponents()).ok
 
       await(filter(action)(rh).run())
 

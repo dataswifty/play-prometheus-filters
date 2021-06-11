@@ -13,16 +13,24 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import play.api.libs.typedmap.TypedMap
 import play.api.mvc.Results
-import play.api.routing.{HandlerDef, Router}
+import play.api.routing.{ HandlerDef, Router }
 import play.api.test.Helpers.stubControllerComponents
-import play.api.test.{DefaultAwaitTimeout, FakeRequest, FutureAwaits}
+import play.api.test.{ DefaultAwaitTimeout, FakeRequest, FutureAwaits }
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import akka.stream.Materializer
 
-class StatusAndRouteLatencyFilterSpec extends AnyWordSpec with Matchers with MockitoSugar with Results with DefaultAwaitTimeout with FutureAwaits with GuiceOneAppPerSuite  {
+class StatusAndRouteLatencyFilterSpec
+    extends AnyWordSpec
+    with Matchers
+    with MockitoSugar
+    with Results
+    with DefaultAwaitTimeout
+    with FutureAwaits
+    with GuiceOneAppPerSuite {
 
-  private implicit val mat = app.materializer
-  private val configuration = mock[Configuration]
+  implicit private val mat: Materializer = app.materializer
+  private val configuration              = mock[Configuration]
 
   "Filter constructor" should {
     "Add a histogram to the prometheus registry" in {
@@ -35,9 +43,11 @@ class StatusAndRouteLatencyFilterSpec extends AnyWordSpec with Matchers with Moc
   "Apply method" should {
     "Measure the latency" in {
       val filter = new StatusAndRouteLatencyFilter(mock[CollectorRegistry], configuration)
-      val rh = FakeRequest().withAttrs( TypedMap(
-        Router.Attrs.HandlerDef -> HandlerDef(null, null, "testController", "test", null, "GET", "/path", null ,null)
-      ))
+      val rh = FakeRequest().withAttrs(
+        TypedMap(
+          Router.Attrs.HandlerDef -> HandlerDef(null, null, "testController", "test", null, "GET", "/path", null, null)
+        )
+      )
       val action = new MockController(stubControllerComponents()).ok
 
       await(filter(action)(rh).run())
@@ -58,7 +68,7 @@ class StatusAndRouteLatencyFilterSpec extends AnyWordSpec with Matchers with Moc
 
     "Measure the latency for an unmatched route" in {
       val filter = new StatusAndRouteLatencyFilter(mock[CollectorRegistry], configuration)
-      val rh = FakeRequest()
+      val rh     = FakeRequest()
       val action = new MockController(stubControllerComponents()).error
 
       await(filter(action)(rh).run())

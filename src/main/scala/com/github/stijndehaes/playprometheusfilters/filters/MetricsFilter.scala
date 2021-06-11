@@ -1,15 +1,15 @@
 package com.github.stijndehaes.playprometheusfilters.filters
 
 import akka.stream.Materializer
-import com.github.stijndehaes.playprometheusfilters.metrics.{CounterRequestMetrics, LatencyRequestMetrics, RequestMetric, RequestMetricBuilder}
+import com.github.stijndehaes.playprometheusfilters.metrics.RequestMetric
 import io.prometheus.client.Collector
 import play.api.Configuration
-import play.api.mvc.{Filter, RequestHeader, Result}
+import play.api.mvc.{ Filter, RequestHeader, Result }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.matching.Regex
 
-/**
-  * Generic filter implementation to add metrics for a request.
+/** Generic filter implementation to add metrics for a request.
   * Subclasses only have to define the `metrics` property to apply metrics.
   *
   * {{{
@@ -32,11 +32,16 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param mat
   * @param ec
   */
-abstract class MetricsFilter(configuration: Configuration)(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
+abstract class MetricsFilter(
+    configuration: Configuration
+  )(implicit
+    val mat: Materializer,
+    ec: ExecutionContext)
+    extends Filter {
 
   val metrics: List[RequestMetric[_, RequestHeader, Result]]
 
-  val excludePaths = {
+  val excludePaths: Set[Regex] = {
     import collection.JavaConverters._
     Option(configuration.underlying)
       .map(_.getStringList("play-prometheus-filters.exclude.paths"))
@@ -45,11 +50,25 @@ abstract class MetricsFilter(configuration: Configuration)(implicit val mat: Mat
       .getOrElse(Set.empty)
   }
 
-  def apply(nextFilter: RequestHeader => Future[Result])
-           (requestHeader: RequestHeader): Future[Result] = {
+  val metricResolution: String =
+    Option(configuration.underlying)
+      .map(_.getString("play-prometheus-filters.metric.resolution"))
+      .getOrElse("milliseconds")
+
+  def apply(
+      nextFilter: RequestHeader => Future[Result]
+    )(requestHeader: RequestHeader): Future[Result] = {
 
     // check if current uri is excluded from metrics
-    def urlIsExcluded = excludePaths.exists(_.findFirstMatchIn(requestHeader.uri).isDefined)
+    def urlIsExcluded =
+      excludePaths.exists(_.findFirstMatchIn(requestHeader.uri).isDefined)
+
+    val resolution = metricResolution match {
+      case "seconds"      => Collector.NANOSECONDS_PER_SECOND
+      case "milliseconds" => Collector.MILLISECONDS_PER_SECOND
+      case "nanoseconds"  => 1
+      case _              => Collector.MILLISECONDS_PER_SECOND
+    }
 
     val startTime = System.nanoTime
 
@@ -57,9 +76,11 @@ abstract class MetricsFilter(configuration: Configuration)(implicit val mat: Mat
       implicit val rh = requestHeader
 
       if (!urlIsExcluded) {
-        val endTime = System.nanoTime
-        val requestTime = (endTime - startTime) / Collector.NANOSECONDS_PER_SECOND
-
+        val endTime     = System.nanoTime
+        val requestTime = (endTime - startTime) / resolution
+        println(
+          s"DIFF: ${endTime - startTime} - Metric: ${requestTime} at ${metricResolution} resolution."
+        )
         metrics.foreach(_.mark(requestTime))
       }
 

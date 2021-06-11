@@ -1,6 +1,7 @@
 package com.github.stijndehaes.playprometheusfilters.helpers
 
 import scala.collection.compat._
+
 import immutable.LazyList
 
 /**
@@ -12,7 +13,9 @@ import immutable.LazyList
   * @param x
   * @param methodName
   */
-class PrivateMethodCaller(x: AnyRef, methodName: String) {
+class PrivateMethodCaller(
+    x: AnyRef,
+    methodName: String) {
   def apply(_args: Any*): Any = {
     val args = _args.map(_.asInstanceOf[AnyRef])
     def _parents: LazyList[Class[_]] =

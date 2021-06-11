@@ -1,17 +1,21 @@
 package com.github.stijndehaes.playprometheusfilters.mocks
 
+import play.api.mvc.{ AbstractController, ControllerComponents }
+
 import javax.inject.Inject
+import play.api.mvc
+import play.api.mvc.AnyContent
 
-import play.api.mvc.{AbstractController, ControllerComponents}
+class MockController @Inject() (cc: ControllerComponents) extends AbstractController(cc) {
 
-class MockController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+  def ok: mvc.Action[AnyContent] =
+    Action {
+      Ok("ok")
+    }
 
-  def ok = Action {
-    Ok("ok")
-  }
-
-  def error = Action {
-    NotFound("error")
-  }
+  def error: mvc.Action[AnyContent] =
+    Action {
+      NotFound("error")
+    }
 
 }
