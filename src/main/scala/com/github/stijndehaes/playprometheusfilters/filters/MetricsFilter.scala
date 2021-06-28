@@ -10,6 +10,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.matching.Regex
 
 /** Generic filter implementation to add metrics for a request.
+  *
   * Subclasses only have to define the `metrics` property to apply metrics.
   *
   * {{{
