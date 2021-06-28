@@ -78,9 +78,6 @@ abstract class MetricsFilter(
       if (!urlIsExcluded) {
         val endTime     = System.nanoTime
         val requestTime = (endTime - startTime) / resolution
-        println(
-          s"DIFF: ${endTime - startTime} - Metric: ${requestTime} at ${metricResolution} resolution."
-        )
         metrics.foreach(_.mark(requestTime))
       }
 
